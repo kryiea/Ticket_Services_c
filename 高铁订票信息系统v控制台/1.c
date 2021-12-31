@@ -13,8 +13,7 @@
 
 
 
-
-
+////////////////////////////////////////////////////////////////////////////数据结构///////////////////////////////////////////
 
 //单一车 存储结构
 struct Route
@@ -41,13 +40,13 @@ struct Route
 	struct Route* next;
 };
 
-//购票人 存储结构
-struct BookedPeo
+// 用户信息结构
+struct user
 {
-	char Name[20];//姓名
 	long long int Id;//身份证
+	char Name[20];//姓名
 
-	int ID_Train;//车编号 用于辨别车次
+	char Num_Train[7];//车编号 用于辨别车次
 	char Station_Begin[10];//起点站
 	char Station_End[10];//到达站
 
@@ -56,54 +55,39 @@ struct BookedPeo
 	int second_Begin;//出发分
 
 	int Level;//席别
+	int ID_Route;//车编号 用于辨别车次
 
-	struct BookedPeo* next;
+	struct user* next;
 };
 
-//候补人 存储结构
-struct WaitPeo
-{
-	char Name[20];//姓名
-	long long int Id;//身份证
-	int ID_Train;//目标车编号
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	char Station_Begin[10];//起点站
-	char Station_End[10];//到达站
+struct Route* head_Route;//路线 头节点
+struct user* head_Booked;//已购票人 头节点
+struct user* head_Wait;//待候补 头节点
+struct user* head_Waited;//候补成功
 
-	long int date_Begin;//出发时间
-	int time_Begin;//出发时
-	int second_Begin;//出发分
-
-	int Level;//席别
-
-
-	struct WaitPeo* next;
-
-};
-
-
-
-struct Route* head_Route;//路线头节点
-struct BookedPeo* head_Booked;//已购票人头节点
 
 
 //文件指针
 FILE* fpRoute;
 FILE* fpBookedPeo;
 FILE* fpWaitPeo;
+FILE* fpWaitedPeo;
 FILE* fptemp;
 
-
+///////////////////////////////////////////////////////////////////////初始化////////////////////////////////////////////////////
 
 //判断是否找到数据文件 包括：路线信息 已订票名单 候补名单 ----- 找到返回1 失败返回0
-void FindDatabase(FILE** fpRoute, FILE** fpBookedPeo, FILE** fpWaitPeo)
+void FindDatabase(FILE* fpRoute, FILE* fpBookedPeo, FILE* fpWaitPeo,FILE* fpWaitedPeo)
 {
 	//fopen_s 成功返回0 不成功返回其他数值
-	int a = fopen_s(fpBookedPeo, "BookedPeo.txt", "r");
-	int b = fopen_s(fpWaitPeo, "WaitPeo.txt", "r");
-	int c = fopen_s(fpRoute, "Route.txt", "r");
+	int a = fopen_s(&fpBookedPeo, "BookedPeo.txt", "r");
+	int b = fopen_s(&fpWaitPeo, "WaitPeo.txt", "r");
+	int c = fopen_s(&fpRoute, "Route.txt", "r");
+	int d = fopen_s(&fpWaitedPeo, "WaitedPeo.txt", "r");
 
-	if (a == 0 && b == 0 && c == 0)
+	if (a == 0 && b == 0 && c == 0 && d== 0)
 	{
 		printf("数据文件已找到\n");
 	
@@ -113,97 +97,131 @@ void FindDatabase(FILE** fpRoute, FILE** fpBookedPeo, FILE** fpWaitPeo)
 		printf("数据文件未找到\n");
 		exit(0);
 	}
+
+	fclose(fpRoute);
+	fclose(fpBookedPeo);
+	fclose(fpWaitPeo);
+	fclose(fpWaitedPeo);
+
 }
 
-//读取 路线信息文件 载入链表
-void InitList_Route(FILE** fpRoute_r, FILE* fpRoute)
+//读取 Route.txt 载入链表
+void InitList_Route(FILE* fpRoute)
 {
-	//建立头节点
-	head_Route = (struct Route*)malloc(sizeof(struct Route));
-	head_Route->next = NULL;
+	fopen_s(&fpRoute, "Route.txt", "r");// fpRoute 指向Route.txt的文件流
 
-	//建立临时节点 用于刷新
-	struct Route* temp;
-	temp = head_Route;
+	if (!feof(fpRoute))
+	{	//建立头节点
+		head_Route = (struct Route*)malloc(sizeof(struct Route));
+		head_Route->next = NULL;
 
-	char ch;
+		//建立临时节点 用于刷新
+		struct Route* temp;
+		temp = head_Route;
 
-	fopen_s(fpRoute_r, "Route.txt", "r");// fpRoute 指向Route.txt的文件流
+		char ch;
 
-	while (!feof(fpRoute))
-	{
-		fscanf_s(fpRoute,"%d",&temp->id_Route);//读入车id
-		ch = fgetc(fpRoute);//吞掉 \n
 
-		fgets(temp->Num_Train, 7, fpRoute);//读入车编号
-		temp->Num_Train[5] = '\0';
+		while (!feof(fpRoute))
+		{
+			fscanf_s(fpRoute, "%d", &temp->id_Route);//读入路线id
 
-		fgets(temp->Station_Begin, 8, fpRoute);//读入起点站	
-		temp->Station_Begin[6] = '\0';
+			fscanf_s(fpRoute, "%s", temp->Num_Train, 7);//读入车次编号
 
-		fgets(temp->Station_End, 8, fpRoute);//读入终点站
-		temp->Station_End[6] = '\0';
+			fscanf_s(fpRoute, "%s", temp->Station_Begin, 10);//读入起点站
 
-		fscanf_s(fpRoute, "%ld", &temp->date_Begin);//读入开始日期
+			fscanf_s(fpRoute, "%s", temp->Station_End, 10);//读入终点站
 
-		fscanf_s(fpRoute, "%d", &temp->time_Begin);//读入 开始时
+			fscanf_s(fpRoute, "%ld", &temp->date_Begin);//读入开始日期
 
-		fscanf_s(fpRoute, "%d", &temp->second_Begin);//读入 开始分
+			fscanf_s(fpRoute, "%d", &temp->time_Begin);//读入 开始时
 
-		fscanf_s(fpRoute, "%ld", &temp->date_End);//读入终点日期
+			fscanf_s(fpRoute, "%d", &temp->second_Begin);//读入 开始分
 
-		fscanf_s(fpRoute, "%d", &temp->time_End);//读入 终点时
+			fscanf_s(fpRoute, "%ld", &temp->date_End);//读入终点日期
 
-		fscanf_s(fpRoute, "%d", &temp->second_End);//读入 终点分
+			fscanf_s(fpRoute, "%d", &temp->time_End);//读入 终点时
 
-		fscanf_s(fpRoute, "%d %d %d", &temp->Level[0], &temp->Level[1], &temp->Level[2]);//读入 特等座 一等座 二等座 数量
+			fscanf_s(fpRoute, "%d", &temp->second_End);//读入 终点分
 
-		fscanf_s(fpRoute, "%d %d %d %d", &temp->SumPeople, &temp->Booked, &temp->Remain, &temp->Wait);//读入 成员定额 已购票人数 剩余票数 候补人数
+			fscanf_s(fpRoute, "%d %d %d", &temp->Level[0], &temp->Level[1], &temp->Level[2]);//读入 特等座 一等座 二等座 数量
 
-		ch = fgetc(fpRoute);//吞掉 \n
+			fscanf_s(fpRoute, "%d %d %d %d", &temp->SumPeople, &temp->Booked, &temp->Remain, &temp->Wait);//读入 成员定额 已购票人数 剩余票数 候补人数
 
-		struct Route* Node = (struct Route*)malloc(sizeof(struct Route));
+			ch = fgetc(fpRoute);//吞掉 \n
 
-		Node->next = NULL;
+			struct Route* Node = (struct Route*)malloc(sizeof(struct Route));
 
-		temp->next = Node;
-		temp = Node;
+			Node->next = NULL;
+
+			temp->next = Node;
+			temp = Node;
+
+		}
+		temp = NULL;
+		free(temp);
 
 	}
 
 
-	temp = NULL;
-	free(temp);
 	fclose(fpRoute);
 
 }
 
-//读取 已定票名单文件 载入链表
-void InitList_BookedPeo()
+//释放旧RoteLists
+void FreeList_Route(struct Route* head)
 {
-	fclose(fpBookedPeo);
-	fopen_s(&fpBookedPeo, "BookedPeo.txt", "r");
-	//载入
-	head_Booked = (struct BookedPeo*)malloc(sizeof(struct BookedPeo));
-	head_Booked->next = NULL;
-	struct BookedPeo* temp_Booked = NULL;
-	temp_Booked = head_Booked;
-	while (!feof(fpBookedPeo))
+	struct Route* pre, * p;
+	pre = head;
+	p = pre->next;
+
+	while (p != NULL)
 	{
-		fscanf_s(fpBookedPeo, "%lld", &temp_Booked->Id);
-		//char ch = fgetc(fpBookedPeo);
-		//fscanf_s(fpBookedPeo, "%s",temp_Booked->Name);
-		//fgets(temp_Booked->Name,20,fpBookedPeo);
-		//strcpy_s(temp_Booked->Name,strlen(temp),temp);
-		//fscanf_s(fpBookedPeo, "%d", &temp_Booked->Level);
-		//fscanf_s(fpBookedPeo, "%d", &temp_Booked->ID_Train);
+		free(pre);
+		pre = p;
+		p = p->next;
+	}
+	free(pre);
 
+}
 
-		struct BookedPeo* Node = (struct BookedPeo*)malloc(sizeof(struct BookedPeo));
-		Node->next = NULL;
-		temp_Booked->next = Node;
-		temp_Booked = Node;
+//读取 BookedPeo.txt 载入链表
+void InitList_BookedPeo(FILE* fpBookedPeo)
+{
+	fopen_s(&fpBookedPeo, "BookedPeo.txt", "r");
 
+	if (!feof(fpBookedPeo))//非空文件
+	{
+		//载入
+		head_Booked = (struct user*)malloc(sizeof(struct user));
+		head_Booked->next = NULL;
+
+		struct user* temp_Booked;
+		temp_Booked = head_Booked;//只用于记录当前位置 头开始
+
+		if (temp_Booked != NULL && head_Booked != NULL)
+		{
+			while (!feof(fpBookedPeo))
+			{
+				fscanf_s(fpBookedPeo, "%lld", &temp_Booked->Id);//读身份证
+				fscanf_s(fpBookedPeo, "%s", temp_Booked->Name, 20);//读取名字
+				fscanf_s(fpBookedPeo, "%s", temp_Booked->Station_Begin, 10);//读起点站
+				fscanf_s(fpBookedPeo, "%s", temp_Booked->Station_End, 10);//读终点站
+				fscanf_s(fpBookedPeo, "%ld", &temp_Booked->date_Begin);//读日期
+				fscanf_s(fpBookedPeo, "%d", &temp_Booked->time_Begin);//读时
+				fscanf_s(fpBookedPeo, "%d", &temp_Booked->second_Begin);//读分
+				fscanf_s(fpBookedPeo, "%d", &temp_Booked->Level);//读席别
+				fscanf_s(fpBookedPeo, "%d", &temp_Booked->ID_Route);//读路线ID
+
+				struct user* Node = (struct user*)malloc(sizeof(struct user));
+				Node->next = NULL;
+				temp_Booked->next = Node;
+				temp_Booked = Node;
+			}
+
+		}
+		temp_Booked = NULL;
+		free(temp_Booked);
 	}
 
 	//关闭文件
@@ -214,12 +232,184 @@ void InitList_BookedPeo()
 //读取 候补名单文件 载入链表
 void InitList_WaitPeo()
 {
+	fopen_s(&fpWaitPeo,"WaitedPeo.txt","r");
+
+	if (!feof(fpWaitPeo))//非空文件
+	{
+		head_Wait = (struct user*)malloc(sizeof(struct user));
+		struct user* temp_Wait = head_Wait;
+
+
+		while (!feof(fpWaitPeo))
+		{
+			fscanf_s(fpBookedPeo, "%lld", &temp_Wait->Id);//读身份证
+			fscanf_s(fpBookedPeo, "%s", temp_Wait->Name, 20);//读取名字
+			fscanf_s(fpBookedPeo, "%s", temp_Wait->Station_Begin, 10);//读起点站
+			fscanf_s(fpBookedPeo, "%s", temp_Wait->Station_End, 10);//读终点站
+			fscanf_s(fpBookedPeo, "%ld", &temp_Wait->date_Begin);//读日期
+			fscanf_s(fpBookedPeo, "%d", &temp_Wait->time_Begin);//读时
+			fscanf_s(fpBookedPeo, "%d", &temp_Wait->second_Begin);//读分
+			fscanf_s(fpBookedPeo, "%d", &temp_Wait->Level);//读席别
+			fscanf_s(fpBookedPeo, "%d", &temp_Wait->ID_Route);//读路线ID
+
+			struct user* Node = (struct user*)malloc(sizeof(struct user));
+			Node->next = NULL;
+			temp_Wait->next = Node;
+			temp_Wait = Node;
+
+		}
+		temp_Wait = NULL;
+		free(temp_Wait);
+	}
+
+	fclose(fpWaitPeo);
+}
+
+//读取 候补成功名单文件 载入链表
+void InitList_waitedPeo()
+{
+	fopen_s(&fpWaitedPeo, "WaitededPeo.txt", "r");
+
+	if (!feof(fpWaitedPeo))//非空文件
+	{
+		head_Waited = (struct user*)malloc(sizeof(struct user));
+		struct user* temp_Waited = head_Waited;
+
+
+		while (!feof(fpWaitedPeo))
+		{
+			fscanf_s(fpBookedPeo, "%lld", &temp_Waited->Id);//读身份证
+			fscanf_s(fpBookedPeo, "%s", temp_Waited->Name, 20);//读取名字
+			fscanf_s(fpBookedPeo, "%s", temp_Waited->Station_Begin, 10);//读起点站
+			fscanf_s(fpBookedPeo, "%s", temp_Waited->Station_End, 10);//读终点站
+			fscanf_s(fpBookedPeo, "%ld", &temp_Waited->date_Begin);//读日期
+			fscanf_s(fpBookedPeo, "%d", &temp_Waited->time_Begin);//读时
+			fscanf_s(fpBookedPeo, "%d", &temp_Waited->second_Begin);//读分
+			fscanf_s(fpBookedPeo, "%d", &temp_Waited->Level);//读席别
+			fscanf_s(fpBookedPeo, "%d", &temp_Waited->ID_Route);//读路线ID
+
+			struct user* Node = (struct user*)malloc(sizeof(struct user));
+			Node->next = NULL;
+			temp_Waited->next = Node;
+			temp_Waited = Node;
+
+		}
+		temp_Waited = NULL;
+		free(temp_Waited);
+	}
+
+	fclose(fpWaitedPeo);
 
 }
+
+//释放User相关信息链表
+void FreeList_User(struct user* head)
+{
+	struct user* pre, * p;
+	pre = head;
+	p = pre->next;
+
+	while (p != NULL)
+	{
+		free(pre);
+		pre = p;
+		p = p->next;
+	}
+	free(pre);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////功能区////////////////////////////////////////////
+
+//更新Route.txt 
+void Update_FileRoute(struct Route* head_Route1)
+{
+
+	fopen_s(&fptemp, "temp.txt", "w"); // 创建新文件
+	struct Route* temp = head_Route1;
+
+	while (temp->next->next != NULL)
+	{
+		fprintf_s(fptemp, "%d ", temp->id_Route);
+		fprintf_s(fptemp, "%s ", temp->Num_Train);
+		fprintf_s(fptemp, "%s ", temp->Station_Begin);
+		fprintf_s(fptemp, "%s ", temp->Station_End);
+		fprintf_s(fptemp, "%ld ", temp->date_Begin);
+		fprintf_s(fptemp, "%2d ", temp->time_Begin);
+		fprintf_s(fptemp, "%2d ", temp->second_Begin);
+		fprintf_s(fptemp, "%ld ", temp->date_End);
+		fprintf_s(fptemp, "%2d ", temp->time_End);
+		fprintf_s(fptemp, "%2d ", temp->second_End);
+		fprintf_s(fptemp, "%2d ", temp->Level[0]);
+		fprintf_s(fptemp, "%2d ", temp->Level[1]);
+		fprintf_s(fptemp, "%2d ", temp->Level[2]);
+		fprintf_s(fptemp, "%2d ", temp->SumPeople);
+		fprintf_s(fptemp, "%2d ", temp->Booked);
+		fprintf_s(fptemp, "%2d ", temp->Remain);
+		fprintf_s(fptemp, "%2d", temp->Wait);
+		fprintf_s(fptemp, "\n");
+		temp = temp->next;
+	}
+
+	fclose(fptemp);
+	remove("Route.txt");
+	rename("temp.txt", "Route.txt");
+
+
+}
+
+//向后写入BookedPeo
+void Write_Booked(struct user* head_Bookedpeo)
+{
+	fopen_s(&fpBookedPeo, "BookedPeo.txt", "a");//指向文件尾 
+
+	fprintf_s(fpBookedPeo, "\n");
+
+	fprintf_s(fpBookedPeo, "%lld", head_Booked->Id);//购票人身份证号码
+	fprintf_s(fpBookedPeo, " ");
+
+	fputs(head_Booked->Name, fpBookedPeo);//购票人姓名
+	fprintf_s(fpBookedPeo, " ");
+
+	fputs(head_Booked->Num_Train,fpBookedPeo);//车号码
+	fprintf_s(fpBookedPeo, " ");
+
+	fputs(head_Booked->Station_Begin, fpBookedPeo);//起点站
+	fprintf_s(fpBookedPeo, " ");
+
+	fputs(head_Booked->Station_End, fpBookedPeo);//终点站
+	fprintf_s(fpBookedPeo, " ");
+
+	fprintf_s(fpBookedPeo, "%ld", head_Booked->date_Begin);//日期
+	fprintf_s(fpBookedPeo, " ");
+
+	fprintf_s(fpBookedPeo, "%d", head_Booked->time_Begin);//时
+	fprintf_s(fpBookedPeo, " ");
+
+	fprintf_s(fpBookedPeo, "%d", head_Booked->second_Begin);//分
+	fprintf_s(fpBookedPeo, " ");
+
+	fprintf_s(fpBookedPeo, "%d", head_Booked->Level);//席别
+	fprintf_s(fpBookedPeo, " ");
+	fprintf_s(fpBookedPeo, "%d", head_Booked->ID_Route);//车id
+	fprintf_s(fpBookedPeo, "\n");
+
+	//关闭
+	fclose(fpBookedPeo);
+
+	free(head_Booked);//释放
+
+
+}
+
 
 // 查询车次
 void Search_Route() 
 {
+
 	struct Route* temp = head_Route;
 	char search[10];
 	int count = 0;
@@ -412,15 +602,24 @@ start1:
 				exit(0);
 			}
 
-			//创建 购票人 头节点
-			head_Booked = (struct BookedPeo*)malloc(sizeof(struct BookedPeo));
+			// 购票人 头节点  信息输入
+			head_Booked = (struct user*)malloc(sizeof(struct user));
 			head_Booked->Level = temp_Level;//写入席别
 			printf("输入姓名：");
 			char ch = getchar();
-			gets_s(head_Booked->Name,20);
+			gets_s(head_Booked->Name,20); //姓名
 			printf("输入身份证号：");
-			scanf_s("%lld", &head_Booked->Id);
-			head_Booked->ID_Train = flag;
+			scanf_s("%lld", &head_Booked->Id);//身份证号
+			head_Booked->ID_Route = flag;//路线ID
+			strcpy_s(head_Booked->Station_Begin,10,temp->Station_Begin);//起点站	
+			strcpy_s(head_Booked->Station_End,10, temp->Station_End);//终点站
+			head_Booked->date_Begin = temp->date_Begin ;//日期
+			head_Booked->time_Begin = temp->time_Begin;//时
+			head_Booked->second_Begin = temp->second_Begin;//分
+			strcpy_s(head_Booked->Num_Train, 7, temp->Num_Train);//起点站	
+
+
+
 
 			//刷新routelist
 			if (temp_Level == 0)
@@ -444,18 +643,7 @@ start1:
 			}
 
 
-			//写入 BookedPeo.txt
-			fclose(fpBookedPeo);
-			fopen_s(&fpBookedPeo,"BookedPeo.txt","a");//指向文件尾 可写
-			fprintf_s(fpBookedPeo,"%lld",head_Booked->Id);//购票人身份证号码
-			fprintf_s(fpBookedPeo, " ");
-			fputs(head_Booked->Name, fpBookedPeo);//购票人姓名
-			fprintf_s(fpBookedPeo, " ");
-			fprintf_s(fpBookedPeo, "%d", head_Booked->Level);//席别
-			fprintf_s(fpBookedPeo, " ");
-			fprintf_s(fpBookedPeo, "%d", head_Booked->ID_Train);//车id
-			fprintf_s(fpBookedPeo, "\n");
-
+			
 			//购票成功
 			Line();
 			printf("恭喜你 订票成功^_^\n");
@@ -465,38 +653,11 @@ start1:
 
 
 			//更新 Route.text 文件  覆盖
-			temp = head_Route;
-			fopen_s(&fptemp,"temp.txt","w"); // 创建新文件
-			while (temp->next->next != NULL)
-			{
-				fprintf_s(fptemp, "%d ", temp->id_Route);
-				fprintf_s(fptemp, "%s ", temp->Num_Train);
-				fprintf_s(fptemp, "%s ", temp->Station_Begin);
-				fprintf_s(fptemp, "%s ", temp->Station_End);
-				fprintf_s(fptemp, "%ld ", temp->date_Begin);
-				fprintf_s(fptemp, "%2d ", temp->time_Begin);
-				fprintf_s(fptemp, "%2d ", temp->second_Begin);
-				fprintf_s(fptemp, "%ld ", temp->date_End);
-				fprintf_s(fptemp, "%2d ", temp->time_End);
-				fprintf_s(fptemp, "%2d ", temp->second_End);
-				fprintf_s(fptemp, "%2d ", temp->Level[0]);
-				fprintf_s(fptemp, "%2d ", temp->Level[1]);
-				fprintf_s(fptemp, "%2d ", temp->Level[2]);
-				fprintf_s(fptemp, "%2d ", temp->SumPeople);
-				fprintf_s(fptemp, "%2d ", temp->Booked);
-				fprintf_s(fptemp, "%2d ", temp->Remain);
-				fprintf_s(fptemp, "%2d", temp->Wait);
-				fprintf_s(fptemp, "\n");
-				temp = temp->next;
-			}
-			
-			//关闭
-			fclose(fptemp);
-			fclose(fpBookedPeo);
-			free(head_Booked);//释放
+			Update_FileRoute(head_Route);
 
-			remove("Route.txt");
-			rename("temp.txt","Route.txt");
+
+			//写入 BookedPeo.txt
+			Write_Booked(head_Booked);
 				
 		}
 		else if(a == 0)
@@ -537,8 +698,6 @@ void Cancel_Ticket()
 
 }
 
-
-
 //个人查票
 void Search_Inf()
 {
@@ -549,14 +708,22 @@ start2:
 	scanf_s("%lld", &wait_ID);
 
 	//查找身份证号
-	struct BookedPeo* temp_1;
+	struct user* temp_1;
+	FreeList_User(head_Booked);
+	InitList_BookedPeo(head_Booked);
+
 	temp_1 = head_Booked;
-	while (temp_1->next->next != NULL)
+	while (temp_1->next != NULL)
 	{
 		if (temp_1->Id == wait_ID)
 		{
 			find = TRUE;
 			//输出信息
+			Line();
+			printf("查到如下信息：\n");
+			printf("\n姓名：%s 车次：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d\n", temp_1->Name, temp_1->Num_Train, temp_1->Station_Begin, temp_1->Station_End, temp_1->date_Begin, temp_1->time_Begin, temp_1->second_Begin);
+			Line();
+
 
 		}
 		temp_1 = temp_1->next;
@@ -565,8 +732,10 @@ start2:
 	if (temp_1->Id == wait_ID)//判断最后一个数据
 	{
 		find = TRUE;
-		//输出信息
-
+		Line();
+		printf("查到如下信息：\n");
+		printf("\n姓名：%s 车次：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d\n",temp_1->Name,temp_1->Num_Train,temp_1->Station_Begin,temp_1->Station_End,temp_1->date_Begin,temp_1->time_Begin,temp_1->second_Begin);
+		Line();
 	}
 	if (find == FALSE)
 	{
@@ -586,15 +755,15 @@ start2:
 	}
 }
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
 	//判断文件是否存在
-	FindDatabase(&fpRoute, &fpBookedPeo, &fpWaitPeo);
+	FindDatabase(fpRoute, fpBookedPeo, fpWaitPeo, fpWaitedPeo);
 	//路线加载进链表
-	InitList_Route(&fpRoute,fpRoute);	
+	InitList_Route(fpRoute);	
 	//加载已购票人名单
-	InitList_BookedPeo();
+	InitList_BookedPeo(fpBookedPeo);
 
 
 
