@@ -68,7 +68,6 @@ struct user* head_Wait;//待候补 头节点
 struct user* head_Waited;//候补成功
 
 
-
 //文件指针
 FILE* fpRoute;
 FILE* fpBookedPeo;
@@ -325,12 +324,67 @@ void FreeList_User(struct user* head)
 }
 
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 ///////////////////////////////////////////////////////////////////////////功能区////////////////////////////////////////////
+
+//自动候补购票
+void AutoBooked_ticket(long long int ID, int train_id, int level, char* name)
+{
+	int flag = 0;
+	struct Route* temp = head_Route;
+	_Bool find = FALSE;
+
+	flag = train_id;
+
+	int temp_Level = level;
+
+
+	// 购票人 头节点  信息输入
+	head_Booked = (struct user*)malloc(sizeof(struct user));
+	head_Booked->Level = temp_Level;//写入席别
+
+	strcpy(head_Booked->Name, name);
+			
+	head_Booked->Id = ID;//获取身份号
+	head_Booked->ID_Route = flag;//路线ID
+	strcpy_s(head_Booked->Station_Begin, 10, temp->Station_Begin);//起点站	
+	strcpy_s(head_Booked->Station_End, 10, temp->Station_End);//终点站
+	head_Booked->date_Begin = temp->date_Begin;//日期
+	head_Booked->time_Begin = temp->time_Begin;//时
+	head_Booked->second_Begin = temp->second_Begin;//分
+	strcpy_s(head_Booked->Num_Train, 7, temp->Num_Train);//起点站	
+
+			//刷新routelist
+	if (temp_Level == 0)
+			{
+				temp->Level[0]--;//特等座减一
+				temp->Remain--;
+				temp->Booked++;
+
+			}
+	else if (temp_Level == 1)
+			{
+				temp->Level[1]--;//特等座减一
+				temp->Remain--;
+				temp->Booked++;
+			}
+	else if (temp_Level == 2)
+			{
+				temp->Level[2]--;//特等座减一
+				temp->Remain--;
+				temp->Booked++;
+			}
+
+	//更新 Route.text 文件  覆盖
+	Update_FileRoute(head_Route);
+
+	//写入 BookedPeo.txt
+	Write_Booked(head_Booked);
+
+}
 
 //更新Route.txt 
 void Update_FileRoute(struct Route* head_Route1)
@@ -399,7 +453,7 @@ void Update_FileUser(struct user* head ,char* Filename)
 	rename("temp.txt", Filename);
 }
 
-//更新waited 的链表 和 文件
+//更新waited 的 链表 和 文件
 void Update_Waited(struct user* head_Waited, long long int ID)
 {
 	struct user* temp_Waited = head_Waited;//当前
@@ -444,7 +498,7 @@ void Update_Waited(struct user* head_Waited, long long int ID)
 
 }
 
-//更新Booked 的链表 和 文件
+//更新Booked 的 链表 和 文件
 void Update_Booked(struct user* head_Booked, long long int ID)
 {
 	struct user* temp_Booked = head_Booked;//当前
@@ -487,7 +541,6 @@ void Update_Booked(struct user* head_Booked, long long int ID)
 	Update_FileUser(head_Booked, "BookedPeo.txt");
 
 }
-
 
 //向后写入BookedPeo
 void Write_Booked(struct user* head_Bookedpeo)
@@ -532,7 +585,7 @@ void Write_Booked(struct user* head_Bookedpeo)
 
 }
 
-//找是 否有能候补的
+//找是否 有能候补的乘客
 void Find_WaitPeo(struct user* head_waitpeo, int Idroute,int level)
 {
 	struct user* temp_FindWait = head_waitpeo;
@@ -548,8 +601,57 @@ void Find_WaitPeo(struct user* head_waitpeo, int Idroute,int level)
 		if (Idroute == temp_FindWait->ID_Route && level == temp_FindWait->Level)//符合候补条件
 		{
 			findwait = TRUE;
-			//自动候补
+			//自动候补买票
+			AutoBooked_ticket(temp_FindWait->Id,temp_FindWait->ID_Route,temp_FindWait->Level,temp_FindWait->Name);
+			printf("有一位待候补乘客已经成功候补\n姓名为：%s", temp_FindWait->Name);
 
+
+			//Waitpeo更新
+			InitList_WaitPeo();
+			//删去 并写入
+			struct user* temp_del_waitpeo = head_waitpeo;
+			struct user* temp_front = head_waitpeo;
+			_Bool delete = FALSE;
+			while (temp_del_waitpeo->next != NULL)
+			{
+				if (temp_del_waitpeo->Id == temp_FindWait->Id && temp_del_waitpeo->ID_Route == temp_FindWait->ID_Route)//找到这个人
+				{
+					_Bool delete = TRUE;
+					temp_front->next = temp_del_waitpeo->next;
+					free(temp_del_waitpeo);
+					break;
+				}
+				temp_front = temp_del_waitpeo;
+				temp_del_waitpeo = temp_del_waitpeo->next;
+			}
+			//最后一个节点
+			if (delete == FALSE)
+			{
+				if (temp_del_waitpeo->Id == temp_FindWait->Id && temp_del_waitpeo->ID_Route == temp_FindWait->ID_Route)//找到这个人
+				{
+					_Bool delete = TRUE;
+					temp_front->next = NULL;
+					free(temp_del_waitpeo);
+				}
+			}
+			//写入文件
+			Update_FileUser(head_Wait,"WaitPeo.txt");
+
+
+			//WaitedPeo更新 向后加入
+			fopen_s(&fpWaitedPeo,"WaitedPeo.txt","a");
+			fprintf_s(fpWaitedPeo, "%\n");//换行
+			fprintf_s(fpWaitedPeo,"%lld ",temp_FindWait->Id);//身份证号
+			fprintf_s(fpWaitedPeo, "%s ", temp_FindWait->Name);//名字
+			fprintf_s(fpWaitedPeo, "%s ", temp_FindWait->Num_Train);//车编号
+			fprintf_s(fpWaitedPeo, "%s ", temp_FindWait->Station_Begin);//起点站
+			fprintf_s(fpWaitedPeo, "%s ", temp_FindWait->Station_End);//终点站
+			fprintf_s(fpWaitedPeo, "%ld ", temp_FindWait->date_Begin);//日期
+			fprintf_s(fpWaitedPeo, "%d ", temp_FindWait->time_Begin);//时
+			fprintf_s(fpWaitedPeo, "%d ", temp_FindWait->second_Begin);//分
+			fprintf_s(fpWaitedPeo, "%d ", temp_FindWait->Level);//席别
+			fprintf_s(fpWaitedPeo, "%d", temp_FindWait->ID_Route);//ID-Route
+			fclose(fpWaitedPeo);
 
 			break;
 		}
@@ -561,6 +663,9 @@ void Find_WaitPeo(struct user* head_waitpeo, int Idroute,int level)
 		{
 			findwait = TRUE;
 			//自动候补
+			AutoBooked_ticket(temp_FindWait->Id, temp_FindWait->ID_Route, temp_FindWait->Level, temp_FindWait->Name);
+			printf("有一位待候补乘客已经成功候补\n姓名为：%s", temp_FindWait->Name);
+			
 		}
 	}
 
@@ -571,10 +676,35 @@ void Find_WaitPeo(struct user* head_waitpeo, int Idroute,int level)
 		return;
 	}
 
-
 }
 
+//是否选择候补   
+void Selectwait(int idroute , int level, struct user* now)
+{
+	long long ID;
+	char name[20];
+	
+	printf("您选择了候补\n请输入你的身份证号码：");
+	scanf_s("%lld",&ID);
+	printf("\n 请输入姓名：");
+	scanf_s("%s",name);
 
+	//写入waitpeo.txt
+	fopen_s(&fpWaitPeo,"WaitPeo.txt","a");
+	fprintf_s(fpWaitPeo, "%\n");//换行
+	fprintf_s(fpWaitPeo, "%lld ", ID);//身份证号
+	fprintf_s(fpWaitPeo, "%s ", name);//名字
+	fprintf_s(fpWaitPeo, "%s ", now->Num_Train);//车编号
+	fprintf_s(fpWaitPeo, "%s ", now->Station_Begin);//起点站
+	fprintf_s(fpWaitPeo, "%s ", now->Station_End);//终点站
+	fprintf_s(fpWaitPeo, "%ld ", now->date_Begin);//日期
+	fprintf_s(fpWaitPeo, "%d ", now->time_Begin);//时
+	fprintf_s(fpWaitPeo, "%d ", now->second_Begin);//分
+	fprintf_s(fpWaitPeo, "%d ", now->Level);//席别
+	fprintf_s(fpWaitPeo, "%d", now->ID_Route);//ID-Route
+	fclose(fpWaitPeo);
+	printf("添加候补成功！\n");
+}
 
 // 查询车次
 void Search_Route() 
@@ -744,8 +874,22 @@ start1:
 			{
 				if (temp->Level[0] <= 0)//特等座没票
 				{
-					printf("特等座票数不足，请重新选择座席\n");
-					goto start1;
+					printf("特等座票数不足\n输入:1 选择候补 输入:2 重新选择座席\n");
+					int select1;
+					scanf_s("%d",&select1);
+					if (select1 == 2)//重新选择
+					{
+						goto start1;
+					}
+					else if (select1 == 1)//选择候补
+					{
+						Selectwait(flag,temp_Level,temp);
+					}
+					else
+					{ 
+						goto start1;
+					}
+
 				}
 				
 			}
@@ -753,8 +897,21 @@ start1:
 			{
 				if (temp->Level[1] <= 0)//一等座没票
 				{
-					printf("一等座票数不足，请重新选择座席\n");
-					goto start1;
+					printf("一等座票数不足\n输入:1 选择候补 输入:2 重新选择座席\n");
+					int select1;
+					scanf_s("%d", &select1);
+					if (select1 == 2)//重新选择
+					{
+						goto start1;
+					}
+					else if (select1 == 1)//选择候补
+					{
+						Selectwait(flag, temp_Level, temp);
+					}
+					else
+					{
+						goto start1;
+					}
 				}
 				
 			}
@@ -762,8 +919,21 @@ start1:
 			{
 				if (temp->Level[2] <= 0)//二等座没票
 				{
-					printf("二等座票数不足，请重新选择座席\n");
-					goto start1;
+					printf("二等座票数不足\n输入:1 选择候补 输入:2 重新选择座席\n");
+					int select1;
+					scanf_s("%d", &select1);
+					if (select1 == 2)//重新选择
+					{
+						goto start1;
+					}
+					else if (select1 == 1)//选择候补
+					{
+						Selectwait(flag, temp_Level, temp);
+					}
+					else
+					{
+						goto start1;
+					}
 				}		
 			}
 			else // 输入错误
@@ -965,15 +1135,6 @@ start4:
 					Find_WaitPeo(head_Wait,temp_Waited->ID_Route,temp_Waited->Level);
 
 
-
-					//自动补票流程：自动填充姓名 身份证号
-
-					//补票完成
-					//Waitpeo更新 WaitedPeo更新
-					//输出 成功订票的相关信息
-
-
-
 				}
 			}
 			break;
@@ -986,10 +1147,94 @@ start4:
 		if (ID == temp_Booked->Id)//找到
 		{
 			find_Booked = TRUE;
+			InitList_waitedPeo(fpWaitedPeo);//加载 候补成功List
+			//检查是否为自动候补的用户
+			while (temp_Waited->next != NULL)
+			{
+				if (ID == temp_Waited->Id)//确认是 自动候补 的用户
+				{
+					find_Waited = TRUE;
+
+
+					InitList_waitedPeo(fpWaitedPeo);//加载自动候补成功的用户
+					Update_Waited(head_Waited, ID);//刷新WaitedList,更新WaitedPeo.txt
+
+					InitList_BookedPeo(fpBookedPeo);//加载BookedpeoList
+					Update_Booked(head_Booked, ID);//刷新BookedPeoList,更新Booked.txt
 
 
 
+					//更新Route  遍历找到目标节点 更新数据后 更新文件
+					_Bool find_route = FALSE;
+					struct Route* temp_route = head_Route;
+					if (temp_route == NULL)
+					{
+						return;
+					}
+					//遍历找该节点并更新List
+					while (temp_route->next != NULL)
+					{
+						if (temp_Waited->ID_Route == temp_route->id_Route)//找到了目的线路
+						{
+							find_route = TRUE;
+							//更新票数
+							if (temp_Waited->Level == 0)//特等座
+							{
+								temp_route->Level[0]++;
+							}
+							else if (temp_Waited->Level == 1)//一等座
+							{
+								temp_route->Level[1]++;
+							}
+							else if (temp_Waited->Level == 2)//二等座
+							{
+								temp_route->Level[2]++;
+							}
+							temp_route->Remain++;//余票＋1
+							temp_route->Booked--;//已购-1
+							break;
+						}
+						temp_route = temp_route->next;
+					}
+					if (find_route == FALSE)
+					{
+						if (temp_Waited->ID_Route == temp_route->id_Route)//找到了目的线路
+						{
+							find_route = TRUE;
+							//更新票数
+							if (temp_Waited->Level == 0)//特等座
+							{
+								temp_route->Level[0]++;
+							}
+							else if (temp_Waited->Level == 1)//一等座
+							{
+								temp_route->Level[1]++;
+							}
+							else if (temp_Waited->Level == 2)//二等座
+							{
+								temp_route->Level[2]++;
+							}
+
+							temp_route->Remain++;//余票＋1
+							temp_route->Booked--;//已购-1
+						}
+					}
+					//更新route文件
+					Update_FileRoute(head_Route);
+
+
+
+					//检测待候补名单 找到符合条件的用户 转入自动补票
+
+					InitList_WaitPeo();//加载待候补名单
+					//遍历找是否有符合要求的
+					Find_WaitPeo(head_Wait, temp_Waited->ID_Route, temp_Waited->Level);
+
+
+				}
+			}
 		}
+
 
 		//不存在该订票人
 		else
@@ -1111,6 +1356,201 @@ start2:
 
 }
 
+//候补情况查询
+void Search_wait()
+{
+	long long int ID;
+	printf("输入身份证号码查询：");
+	scanf_s("%lld",&ID);
+
+	//加载待候补 和 候补成功 名单
+	InitList_waitedPeo();
+	InitList_WaitPeo();
+
+
+	//先检查 候补成功
+	struct user* temp_waited = head_Waited;
+	struct user* temp_wait = head_Wait;
+	_Bool findWaited = FALSE;
+	_Bool findWait = FALSE;
+
+
+	//开始找候补成功的名单
+	while(temp_waited->next != NULL)
+	{
+		if (ID ==temp_waited->Id)//找到
+		{
+			findWaited = TRUE;
+			char ch[7];
+			char L0[] = "特等座";
+			char L1[] = "一等座";
+			char L2[] = "二等座";
+			if (temp_waited->Level == 0)
+			{
+				strcpy_s(ch, 7, L0);
+			}
+			else if (temp_waited->Level == 1)
+			{
+				strcpy_s(ch, 7, L1);
+
+			}
+			else if (temp_waited->Level == 2)
+			{
+				strcpy_s(ch, 7, L2);
+			}
+
+			Line();
+			printf("^_^  ^_^已经候补成功！当前候补成功的车票信息为：\n");
+			printf("姓名：%s 车编号：%s 席别：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d",
+				temp_waited->Name,
+				temp_waited->Num_Train,
+				ch,
+				temp_waited->Station_Begin,
+				temp_waited->Station_End,
+				temp_waited->date_Begin,
+				temp_waited->time_Begin,
+				temp_waited->second_Begin			
+				);
+			Line();
+		}
+		temp_waited = temp_waited->next;
+	}
+	//没找到，进入最后一个节点
+	if (findWaited == FALSE)
+	{
+		if (ID == temp_waited->Id)//找到
+		{
+			findWaited = TRUE;
+			char ch[7];
+			char L0[] = "特等座";
+			char L1[] = "一等座";
+			char L2[] = "二等座";
+			if (temp_waited->Level == 0)
+			{
+				strcpy_s(ch, 7, L0);
+			}
+			else if (temp_waited->Level == 1)
+			{
+				strcpy_s(ch, 7, L1);
+
+			}
+			else if (temp_waited->Level == 2)
+			{
+				strcpy_s(ch, 7, L2);
+			}
+
+			Line();
+			printf("^_^  ^_^已经候补成功！当前候补成功的车票信息为：\n");
+			printf("姓名：%s 车编号：%s 席别：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d",
+				temp_waited->Name,
+				temp_waited->Num_Train,
+				ch,
+				temp_waited->Station_Begin,
+				temp_waited->Station_End,
+				temp_waited->date_Begin,
+				temp_waited->time_Begin,
+				temp_waited->second_Begin
+			);
+			Line();
+		}
+	}
+
+	//候补成功名单找不到 ，再检查待候补名单
+	if (findWaited == FALSE)
+	{
+		//开始找待候补的名单
+		while (temp_wait->next != NULL)
+		{
+			if (ID == temp_wait->Id)//找到
+			{
+				findWait = TRUE;
+				char ch[7];
+				char L0[] = "特等座";
+				char L1[] = "一等座";
+				char L2[] = "二等座";
+				if (temp_wait->Level == 0)
+				{
+					strcpy_s(ch, 7, L0);
+				}
+				else if (temp_wait->Level == 1)
+				{
+					strcpy_s(ch, 7, L1);
+
+				}
+				else if (temp_wait->Level == 2)
+				{
+					strcpy_s(ch, 7, L2);
+				}
+
+				Line();
+				printf("仍在等待候补状态！当前等待候补车票信息为：\n");
+				printf("姓名：%s 车编号：%s 席别：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d",
+					temp_wait->Name,
+					temp_wait->Num_Train,
+					ch,
+					temp_wait->Station_Begin,
+					temp_wait->Station_End,
+					temp_wait->date_Begin,
+					temp_wait->time_Begin,
+					temp_wait->second_Begin
+				);
+				Line();
+				break;
+			}
+			temp_wait = temp_wait->next;
+		}
+		//没找到，进入最后一个节点
+		if (findWait == FALSE)
+		{
+			if (ID == temp_wait->Id)//找到
+			{
+				findWait = TRUE;
+
+				char ch[7];
+				char L0[] = "特等座";
+				char L1[] = "一等座";
+				char L2[] = "二等座";
+				if (temp_wait->Level == 0)
+				{
+					strcpy_s(ch, 7, L0);
+				}
+				else if (temp_wait->Level == 1)
+				{
+					strcpy_s(ch, 7, L1);
+
+				}
+				else if (temp_wait->Level == 2)
+				{
+					strcpy_s(ch, 7, L2);
+				}
+
+				Line();
+				printf("仍在等待候补状态！当前等待候补车票信息为：\n");
+				printf("姓名：%s 车编号：%s 席别：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d",
+					temp_wait->Name,
+					temp_wait->Num_Train,
+					ch,
+					temp_wait->Station_Begin,
+					temp_wait->Station_End,
+					temp_wait->date_Begin,
+					temp_wait->time_Begin,
+					temp_wait->second_Begin
+				);
+				Line();
+			}
+		}
+	}
+	
+	//都检索不到，说明没有参加过候补
+	if(findWaited == FALSE && findWait == FALSE )
+	{
+		Line();
+		printf("该身份证号码未候补相关的信息\n");
+		Line();
+	}
+
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1119,12 +1559,10 @@ int main()
 {
 	//判断文件是否存在
 	FindDatabase(fpRoute, fpBookedPeo, fpWaitPeo, fpWaitedPeo);
-	//路线加载进链表
+	//路线加载
 	InitList_Route(fpRoute);	
 	//加载已购票人名单
 	InitList_BookedPeo(fpBookedPeo);
-
-
 
 	//菜单功能
 	int select = 0;	
@@ -1153,6 +1591,7 @@ int main()
 			break;
 		case 4:   
 			//4.候补查询
+			Search_wait();
 			break;
 		case 5:
 			Search_Inf();
@@ -1177,11 +1616,5 @@ int main()
 		}
 	}
 
-
 	return 0;
 }
-
-
-
-
-
