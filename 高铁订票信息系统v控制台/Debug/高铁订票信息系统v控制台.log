@@ -1,4 +1,8 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(513,5): warning MSB8028: 中间目录(Debug\)包含从另一个项目(book.vcxproj)共享的文件。   这会导致错误的清除和重新生成行为。
   1.c
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um\winbase.h(9531,5): warning C5105: 生成“已定义”的宏扩展具有未定义的行为
+D:\vs2019 code\高铁订票系统\高铁订票信息系统v控制台\1.c(437,20): warning C4553: “==”: 未使用表达式结果；是否打算使用“=”?
+D:\vs2019 code\高铁订票系统\高铁订票信息系统v控制台\1.c(482,20): warning C4553: “==”: 未使用表达式结果；是否打算使用“=”?
+  menu.c
+  正在生成代码...
   高铁订票信息系统v控制台.vcxproj -> D:\vs2019 code\高铁订票系统\Debug\高铁订票信息系统v控制台.exe

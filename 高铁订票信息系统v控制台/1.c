@@ -324,6 +324,8 @@ void FreeList_User(struct user* head)
 	free(pre);
 }
 
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -367,6 +369,126 @@ void Update_FileRoute(struct Route* head_Route1)
 
 }
 
+//更新user相关文件 参数：待更新的文件链表头  文件名地址
+void Update_FileUser(struct user* head ,char* Filename)
+{
+	fopen_s(&fptemp, "temp.txt", "w"); // 创建新文件
+	struct user* temp = head;
+	//先写入第一条数据 测试数据
+	fprintf_s(fptemp,"44092120098255710 测试姓名 G1002 测起点 测终点 20211212 15 30 1 2");
+
+
+	while (temp->next->next != NULL)
+	{
+		fprintf_s(fptemp, "\n");
+		fprintf_s(fptemp, "%lld ", temp->Id);
+		fprintf_s(fptemp, "%s ", temp->Name);
+		fprintf_s(fptemp, "%s ", temp->Num_Train);
+		fprintf_s(fptemp, "%s ", temp->Station_Begin);
+		fprintf_s(fptemp, "%s ", temp->Station_End);
+		fprintf_s(fptemp, "%d ", temp->date_Begin);
+		fprintf_s(fptemp, "%d ", temp->time_Begin);
+		fprintf_s(fptemp, "%d ", temp->second_Begin);
+		fprintf_s(fptemp, "%d ", temp->Level);
+		fprintf_s(fptemp, "%d", temp->ID_Route);
+		temp = temp->next;
+	}
+
+	fclose(fptemp);
+	remove(Filename);
+	rename("temp.txt", Filename);
+}
+
+//更新waited 的链表 和 文件
+void Update_Waited(struct user* head_Waited, long long int ID)
+{
+	struct user* temp_Waited = head_Waited;//当前
+	struct user* temp_front = head_Waited;//上一个
+
+	if (temp_Waited == NULL)
+	{
+		return;
+	}
+
+	//查 删 ，同时记录两个节点
+	while (temp_Waited->next != NULL)
+	{
+
+		if (ID == temp_Waited->Id) // 找到该节点
+		{
+
+			if (temp_Waited == head_Waited)//删除头节点
+			{
+				//第一条为测试数据，不能删除，可以忽略此情况
+			}
+			else//删除 非头节点
+			{
+				temp_front->next = temp_Waited->next;
+				free(temp_Waited);
+			}
+			break;
+		}
+		temp_front = temp_Waited;
+		temp_Waited = temp_Waited->next;
+	}
+	//删除最后一个节点
+	if (ID == temp_Waited->Id)
+	{
+		temp_front->next == NULL;
+		free(temp_Waited);//释放
+	}
+
+	//将新的 List 写入更新WaitedPeo.txt
+	Update_FileUser(head_Waited, "WaitedPeo.txt");
+
+
+}
+
+//更新Booked 的链表 和 文件
+void Update_Booked(struct user* head_Booked, long long int ID)
+{
+	struct user* temp_Booked = head_Booked;//当前
+	struct user* temp_front = head_Booked;//上一个
+
+	if (temp_Booked == NULL)
+	{
+		return;
+	}
+
+	//查 删 ，同时记录两个节点
+	while (temp_Booked->next != NULL)
+	{
+
+		if (ID == temp_Booked->Id) // 找到该节点
+		{
+
+			if (temp_Booked == head_Waited)//删除头节点
+			{
+				//第一条为测试数据，不能删除，可以忽略此情况
+			}
+			else//删除 非头节点
+			{
+				temp_front->next = temp_Booked->next;
+				free(temp_Booked);
+			}
+			break;
+		}
+		temp_front = temp_Booked;
+		temp_Booked = temp_Booked->next;
+	}
+	//删除最后一个节点
+	if (ID == temp_Booked->Id)
+	{
+		temp_front->next == NULL;
+		free(temp_Booked);//释放
+	}
+
+	//更新文件
+	Update_FileUser(head_Booked, "BookedPeo.txt");
+
+}
+
+
 //向后写入BookedPeo
 void Write_Booked(struct user* head_Bookedpeo)
 {
@@ -409,6 +531,49 @@ void Write_Booked(struct user* head_Bookedpeo)
 
 
 }
+
+//找是 否有能候补的
+void Find_WaitPeo(struct user* head_waitpeo, int Idroute,int level)
+{
+	struct user* temp_FindWait = head_waitpeo;
+	_Bool findwait = FALSE;
+
+	if (temp_FindWait == NULL)
+	{
+		return;
+	}
+
+	while (temp_FindWait->next != NULL)
+	{
+		if (Idroute == temp_FindWait->ID_Route && level == temp_FindWait->Level)//符合候补条件
+		{
+			findwait = TRUE;
+			//自动候补
+
+
+			break;
+		}
+		temp_FindWait = temp_FindWait->next;
+	}
+	if (findwait == FALSE)//最后一个节点前 仍未找到
+	{
+		if (Idroute == temp_FindWait->ID_Route && level == temp_FindWait->Level)//符合候补条件
+		{
+			findwait = TRUE;
+			//自动候补
+		}
+	}
+
+	//找不到合适的
+	if (findwait == FALSE)
+	{
+		printf("无需要自动候补的成员\n");
+		return;
+	}
+
+
+}
+
 
 
 // 查询车次
@@ -724,20 +889,89 @@ start4:
 				{
 					find_Waited = TRUE;
 
-					//更新WaitedPeo.txt 删除该用户
-					//读入WaitedList 找到并删除该节点 然后写入WaitedPeo.txt
+					
+					InitList_waitedPeo(fpWaitedPeo);//加载自动候补成功的用户
+					Update_Waited(head_Waited,ID);//刷新WaitedList,更新WaitedPeo.txt
 
-				
-				
-					//更新BookedPeo.txt 删除该用户
-					//在BookedList 中找到该节点并且删除 ，然后写入到Booked.完成更新
+					InitList_BookedPeo(fpBookedPeo);//加载BookedpeoList
+					Update_Booked(head_Booked,ID);//刷新BookedPeoList,更新Booked.txt
+
+
+
+					//更新Route  遍历找到目标节点 更新数据后 更新文件
+					_Bool find_route = FALSE;
+					struct Route* temp_route = head_Route;
+					if (temp_route == NULL)
+					{
+						return;
+					}
+					//遍历找该节点并更新List
+					while (temp_route->next != NULL)
+					{
+						if (temp_Waited->ID_Route == temp_route->id_Route)//找到了目的线路
+						{
+							find_route = TRUE;
+							//更新票数
+							if (temp_Waited->Level == 0)//特等座
+							{
+								temp_route->Level[0]++;
+							}
+							else if(temp_Waited->Level == 1)//一等座
+							{
+								temp_route->Level[1]++;
+							}
+							else if (temp_Waited->Level == 2)//二等座
+							{
+								temp_route->Level[2]++;
+							}
+							temp_route->Remain++;//余票＋1
+							temp_route->Booked--;//已购-1
+							break;
+						}
+						temp_route = temp_route->next;
+					}
+					if (find_route == FALSE)
+					{
+						if (temp_Waited->ID_Route == temp_route->id_Route)//找到了目的线路
+						{
+							find_route = TRUE;
+							//更新票数
+							if (temp_Waited->Level == 0)//特等座
+							{
+								temp_route->Level[0]++;
+							}
+							else if (temp_Waited->Level == 1)//一等座
+							{
+								temp_route->Level[1]++;
+							}
+							else if (temp_Waited->Level == 2)//二等座
+							{
+								temp_route->Level[2]++;
+							}
+
+							temp_route->Remain++;//余票＋1
+							temp_route->Booked--;//已购-1
+						}
+					}
+					//更新route文件
+					Update_FileRoute(head_Route);
+
 
 
 					//检测待候补名单 找到符合条件的用户 转入自动补票
 
+					InitList_WaitPeo();//加载待候补名单
+					//遍历找是否有符合要求的
+					Find_WaitPeo(head_Wait,temp_Waited->ID_Route,temp_Waited->Level);
+
+
+
 					//自动补票流程：自动填充姓名 身份证号
 
-					//补票完成后 输出 成功订票的相关信息
+					//补票完成
+					//Waitpeo更新 WaitedPeo更新
+					//输出 成功订票的相关信息
+
 
 
 				}
@@ -877,7 +1111,10 @@ start2:
 
 }
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 int main()
 {
 	//判断文件是否存在
