@@ -205,6 +205,7 @@ void InitList_BookedPeo(FILE* fpBookedPeo)
 			{
 				fscanf_s(fpBookedPeo, "%lld", &temp_Booked->Id);//读身份证
 				fscanf_s(fpBookedPeo, "%s", temp_Booked->Name, 20);//读取名字
+				fscanf_s(fpBookedPeo, "%s", temp_Booked->Num_Train, 7);//读取名字
 				fscanf_s(fpBookedPeo, "%s", temp_Booked->Station_Begin, 10);//读起点站
 				fscanf_s(fpBookedPeo, "%s", temp_Booked->Station_End, 10);//读终点站
 				fscanf_s(fpBookedPeo, "%ld", &temp_Booked->date_Begin);//读日期
@@ -309,6 +310,11 @@ void FreeList_User(struct user* head)
 	pre = head;
 	p = pre->next;
 
+	if (head == NULL)
+	{
+		return;
+	}
+
 	while (p != NULL)
 	{
 		free(pre);
@@ -395,7 +401,6 @@ void Write_Booked(struct user* head_Bookedpeo)
 	fprintf_s(fpBookedPeo, "%d", head_Booked->Level);//席别
 	fprintf_s(fpBookedPeo, " ");
 	fprintf_s(fpBookedPeo, "%d", head_Booked->ID_Route);//车id
-	fprintf_s(fpBookedPeo, "\n");
 
 	//关闭
 	fclose(fpBookedPeo);
@@ -686,14 +691,91 @@ start1:
 
 //退订车票
 void Cancel_Ticket()
-{
-	//输入 身份证 查 ，选 车ID
-	//退票后，更新Roulist(车票数量的更新),更新txt
-	//在已购人链表 删除ID那个节点 ，更新txt
-	//进入判断 候补名单是否符合要求(加载进候补人链表) 遍历每一位候补人 通过检索ID，对比Level的数量是否>0,如果是自动进行订票，
-	// 并更新候补人链表（删去那个节点）以及BookedPeo链表，更新 输出候补成功的信息，写入候补成功名单txt 和 成功购票人txt（重新覆盖）
-	// 
-	//
+{	
+start4:
+	Line();
+	long long int ID;
+
+	printf("输入身份证号码：");
+	scanf_s("%lld", &ID);
+	InitList_BookedPeo(fpBookedPeo);//加载BookedList
+
+	//遍历找ID
+	struct user* temp_Booked;
+	struct user* temp_Waited;
+
+	temp_Booked = head_Booked;
+	temp_Waited = head_Waited;
+
+	_Bool find_Booked = FALSE;
+	_Bool find_Waited = FALSE;
+
+
+	while (temp_Booked->next != NULL)
+	{
+		if (ID == temp_Booked->Id)//找到
+		{
+			find_Booked = TRUE;
+			InitList_waitedPeo(fpWaitedPeo);//加载 候补成功List
+			//检查是否为自动候补的用户
+			while (temp_Waited->next != NULL)
+			{
+				if (ID == temp_Waited->Id)//确认是 自动候补 的用户
+				{
+					find_Waited = TRUE;
+
+					//更新WaitedPeo.txt 删除该用户
+					//读入WaitedList 找到并删除该节点 然后写入WaitedPeo.txt
+
+				
+				
+					//更新BookedPeo.txt 删除该用户
+					//在BookedList 中找到该节点并且删除 ，然后写入到Booked.完成更新
+
+
+					//检测待候补名单 找到符合条件的用户 转入自动补票
+
+					//自动补票流程：自动填充姓名 身份证号
+
+					//补票完成后 输出 成功订票的相关信息
+
+
+				}
+			}
+			break;
+		}
+		temp_Booked = temp_Booked->next;
+	}
+
+	if (find_Booked == FALSE)//最后一个节点之前仍未找到
+	{
+		if (ID == temp_Booked->Id)//找到
+		{
+			find_Booked = TRUE;
+
+
+
+		}
+
+		//不存在该订票人
+		else
+		{
+			printf("该身份证号码未订票，请检查后重试！\n输入其他返回主菜单，输入 1 重新输入身份证：");
+			int select;
+			scanf_s("%d",&select);
+			if (select == 1)
+			{
+				goto start4;
+			}
+			else
+			{
+				return;
+			}
+
+		}
+	}
+
+
 
 
 }
@@ -709,19 +791,49 @@ start2:
 
 	//查找身份证号
 	struct user* temp_1;
-	FreeList_User(head_Booked);
-	InitList_BookedPeo(head_Booked);
+	//FreeList_User(head_Booked);
+	InitList_BookedPeo(fpBookedPeo);
 
 	temp_1 = head_Booked;
+
+	char ch[7];
+	char L0[] = "特等座";
+	char L1[] = "一等座";
+	char L2[] = "二等座";
+	if (temp_1->Level == 0)
+	{
+		strcpy_s(ch, 7, L0);
+	}
+	else if (temp_1->Level == 1)
+	{
+		strcpy_s(ch, 7, L1);
+
+	}
+	else if (temp_1->Level == 2)
+	{
+		strcpy_s(ch, 7, L2);
+	}
+
 	while (temp_1->next != NULL)
 	{
 		if (temp_1->Id == wait_ID)
 		{
 			find = TRUE;
+			
+
 			//输出信息
 			Line();
 			printf("查到如下信息：\n");
-			printf("\n姓名：%s 车次：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d\n", temp_1->Name, temp_1->Num_Train, temp_1->Station_Begin, temp_1->Station_End, temp_1->date_Begin, temp_1->time_Begin, temp_1->second_Begin);
+			printf("\n姓名：%s 车次：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d 席别：%s\n",
+				temp_1->Name,
+				temp_1->Num_Train,
+				temp_1->Station_Begin, 
+				temp_1->Station_End,
+				temp_1->date_Begin, 
+				temp_1->time_Begin,
+				temp_1->second_Begin,
+				ch
+			);
 			Line();
 
 
@@ -734,13 +846,22 @@ start2:
 		find = TRUE;
 		Line();
 		printf("查到如下信息：\n");
-		printf("\n姓名：%s 车次：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d\n",temp_1->Name,temp_1->Num_Train,temp_1->Station_Begin,temp_1->Station_End,temp_1->date_Begin,temp_1->time_Begin,temp_1->second_Begin);
+		printf("\n姓名：%s 车次：%s 起点站：%s 终点站：%s 出发时间：%ld-%d:%d 席别：%s\n",
+			temp_1->Name,
+			temp_1->Num_Train,
+			temp_1->Station_Begin,
+			temp_1->Station_End,
+			temp_1->date_Begin,
+			temp_1->time_Begin,
+			temp_1->second_Begin,
+			ch
+		);
 		Line();
 	}
 	if (find == FALSE)
 	{
 		printf("请检查输入的证件号是否正确，查询不到相关记录\n");
-		printf("重新输入证件号请输入 1");
+		printf("重新输入证件号请输入( 1 ):");
 		int a = 0;
 		scanf_s("%d",&a);
 		Line();
@@ -753,6 +874,7 @@ start2:
 			return;
 		}
 	}
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -781,7 +903,8 @@ int main()
 		switch (select)
 		{
 		case 1:  
-			Search_Route();//1.查询车票
+			// 1.查询车票
+			Search_Route();
 			break;
 		case 2:   
 			//2.预订车票
@@ -789,6 +912,7 @@ int main()
 			break;
 		case 3:   
 			//3.退订车票
+			Cancel_Ticket();
 			break;
 		case 4:   
 			//4.候补查询
