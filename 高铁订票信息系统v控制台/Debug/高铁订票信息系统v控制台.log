@@ -1,7 +1,4 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(513,5): warning MSB8028: 中间目录(Debug\)包含从另一个项目(book.vcxproj)共享的文件。   这会导致错误的清除和重新生成行为。
   1.c
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um\winbase.h(9531,5): warning C5105: 生成“已定义”的宏扩展具有未定义的行为
-D:\vs2019 code\高铁订票系统\高铁订票信息系统v控制台\1.c(821,4): warning C4033: “Select_wait”必须返回值
-D:\vs2019 code\高铁订票系统\高铁订票信息系统v控制台\1.c(1471,7): warning C4102: “start2”: 未引用的标签
-D:\vs2019 code\高铁订票系统\高铁订票信息系统v控制台\1.c(852): warning C4715: “Select_wait”: 不是所有的控件路径都返回值
   高铁订票信息系统v控制台.vcxproj -> D:\vs2019 code\高铁订票系统\Debug\高铁订票信息系统v控制台.exe

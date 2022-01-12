@@ -1,0 +1,8 @@
+﻿  1.c
+D:\vs2019 code\高铁订票系统\高铁订票信息系统v控制台\1.c(1478,7): warning C4102: “start2”: 未引用的标签
+  menu.c
+  正在生成代码
+  Previous IPDB not found, fall back to full compilation.
+  All 31 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  高铁订票信息系统v控制台.vcxproj -> D:\vs2019 code\高铁订票系统\x64\Release\高铁订票信息系统v控制台.exe
