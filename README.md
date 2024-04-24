@@ -1,6 +1,6 @@
 
 
-# Book_HighSpeed_Ticket c课程设计
+# Ticket_Services c课程设计
 
 ​																																						2022.1.8  C语言课程设计
 
